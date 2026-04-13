@@ -1,0 +1,82 @@
+# rss-daily 数据源配置
+# 详细字段说明见 docs/specs/2026-04-13-news-aggregator-design.md §5.4.1
+
+meta:
+  user_agent_default: "rss-daily/0.1 (+https://github.com/312362115/rss)"
+  reddit_user_agent: "rss-daily/0.1 by renlongyu"
+  top_n_per_category: 20        # 每类最多写入的条数
+  rss_items_per_feed: 10        # 每个 RSS feed 抓的最新条数
+  hotness_caps:                 # 热度归一化封顶阈值(§5.6.4)
+    hn_score: 500
+    reddit_upvotes: 5000
+    x_favorites: 10000
+
+# ------------ X (Twitter) ------------
+# list_id 需要在创建 X 小号 + 手动建 list 后填入
+# 见 docs/runbooks/x-account-setup.md
+x:
+  cookie_browser: chrome        # xreach 从哪个浏览器读 cookie
+  delay_ms: 1500
+  lists:
+    - name: ai-core
+      id: "TODO_AI_LIST_ID"
+      tweets_per_run: 50
+    - name: crypto-core
+      id: "TODO_CRYPTO_LIST_ID"
+      tweets_per_run: 50
+    - name: tech-core
+      id: "TODO_TECH_LIST_ID"
+      tweets_per_run: 50
+    - name: zh-core
+      id: "TODO_ZH_LIST_ID"
+      tweets_per_run: 50
+  # 刷屏号单独抓,避免挤掉 list 里其他 KOL
+  users:
+    - handle: zachxbt
+      tweets_per_run: 20
+
+# ------------ HackerNews ------------
+hackernews:
+  top_count: 30                 # 从 top stories 取前 N 个
+  min_score: 100                # 过滤低分
+
+# ------------ Reddit ------------
+reddit:
+  ai:
+    - {sub: singularity,         sort: top, t: day, limit: 10}
+    - {sub: LocalLLaMA,          sort: top, t: day, limit: 10}
+    - {sub: MachineLearning,     sort: top, t: day, limit: 5}
+    - {sub: OpenAI,              sort: top, t: day, limit: 5}
+    - {sub: ClaudeAI,            sort: top, t: day, limit: 5}
+  crypto:
+    - {sub: CryptoCurrency,      sort: top, t: day, limit: 10}
+    - {sub: Bitcoin,             sort: top, t: day, limit: 5}
+    - {sub: ethereum,            sort: top, t: day, limit: 5}
+    - {sub: solana,              sort: top, t: day, limit: 5}
+    - {sub: defi,                sort: top, t: day, limit: 5}
+  tech:
+    - {sub: technology,          sort: top, t: day, limit: 5}
+    - {sub: programming,         sort: top, t: day, limit: 5}
+
+# ------------ RSS ------------
+# 每源最新 meta.rss_items_per_feed 条
+# 特殊 UA 需要时加 ua_override 字段
+rss:
+  ai:
+    - {name: "Anthropic",          url: "https://www.anthropic.com/news/rss.xml"}
+    - {name: "OpenAI Blog",        url: "https://openai.com/blog/rss.xml"}
+    - {name: "DeepMind",           url: "https://deepmind.google/blog/rss.xml"}
+    - {name: "HF Daily Papers",    url: "https://huggingface.co/papers/feed/daily"}
+    - {name: "MIT Tech Review AI", url: "https://www.technologyreview.com/topic/artificial-intelligence/feed"}
+    - {name: "Simon Willison",     url: "https://simonwillison.net/atom/everything/"}
+  crypto:
+    - {name: "CoinDesk",           url: "https://www.coindesk.com/arc/outboundfeeds/rss/"}
+    - {name: "The Block",          url: "https://www.theblock.co/rss.xml"}
+    - {name: "Decrypt",            url: "https://decrypt.co/feed"}
+    - {name: "Cointelegraph",      url: "https://cointelegraph.com/rss"}
+    - {name: "Bankless",           url: "https://newsletter.banklesshq.com/feed"}
+  tech:
+    - {name: "TechCrunch",         url: "https://techcrunch.com/feed/"}
+    - {name: "The Verge",          url: "https://www.theverge.com/rss/index.xml"}
+    - {name: "Ars Technica",       url: "https://feeds.arstechnica.com/arstechnica/index"}
+    - {name: "HN Front Page",      url: "https://hnrss.org/frontpage"}
