@@ -56,6 +56,7 @@ class XFetcher(Fetcher):
         args = [
             XREACH_BIN, "list-tweets", spec["id"],
             "-n", str(spec.get("tweets_per_run", 50)),
+            "--max-pages", "1",
             "--format", "jsonl",
             "--delay", str(self.delay_ms),
         ]
@@ -65,6 +66,7 @@ class XFetcher(Fetcher):
         args = [
             XREACH_BIN, "tweets", spec["handle"],
             "-n", str(spec.get("tweets_per_run", 20)),
+            "--max-pages", "1",
             "--format", "jsonl",
             "--delay", str(self.delay_ms),
         ]
@@ -115,43 +117,49 @@ class XFetcher(Fetcher):
 def parse_tweet(raw: dict, favorites_cap: int) -> Item | None:
     """把 xreach jsonl 一条 tweet 解析为 Item。
 
-    xreach 的 tweet 对象字段示例(简化):
+    xreach (xreach-cli 0.3+) 返回的字段是 camelCase:
     {
-      "id_str": "1234...", "full_text": "...", "created_at": "...",
-      "user": {"screen_name": "sama", "name": "Sam Altman"},
-      "favorite_count": 123, "retweet_count": 45,
-      "entities": {"urls": [...]}
+      "id": "1234...", "text": "...", "createdAt": "Fri Apr 10 22:58:13 +0000 2026",
+      "user": {"screenName": "sama", "name": "Sam Altman"},
+      "likeCount": 15550, "retweetCount": 1222, "replyCount": 2701,
+      "quoteCount": 844, "viewCount": 6286631, "bookmarkCount": 5884,
+      "isRetweet": false, "isQuote": false, "isReply": false
     }
     """
-    tweet_id = raw.get("id_str") or str(raw.get("id", ""))
+    tweet_id = str(raw.get("id") or raw.get("id_str") or "")
     if not tweet_id:
         return None
-    text = raw.get("full_text") or raw.get("text") or ""
+    text = raw.get("text") or raw.get("full_text") or ""
     if not text.strip():
         return None
     user = raw.get("user") or {}
-    handle = user.get("screen_name") or raw.get("screen_name") or "unknown"
+    handle = (
+        user.get("screenName")
+        or user.get("screen_name")
+        or raw.get("screenName")
+        or "unknown"
+    )
     url = f"https://x.com/{handle}/status/{tweet_id}"
 
-    # 发布时间 — X 的 created_at 格式:"Wed Oct 10 20:19:24 +0000 2018"
+    # 发布时间 — X 的 createdAt 格式:"Wed Oct 10 20:19:24 +0000 2018"
     published = datetime.now(tz=timezone.utc)
-    created_at = raw.get("created_at")
+    created_at = raw.get("createdAt") or raw.get("created_at")
     if created_at:
         try:
             published = datetime.strptime(created_at, "%a %b %d %H:%M:%S %z %Y")
         except ValueError:
             try:
-                # 备选 ISO 8601 格式
                 published = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
             except ValueError:
                 pass
 
-    favorites = int(raw.get("favorite_count") or 0)
-    retweets = int(raw.get("retweet_count") or 0)
-    # 简单热度:favorites + retweets * 2
-    hotness = favorites + retweets * 2
+    likes = int(raw.get("likeCount") or raw.get("favorite_count") or 0)
+    retweets = int(raw.get("retweetCount") or raw.get("retweet_count") or 0)
+    replies = int(raw.get("replyCount") or 0)
+    views = int(raw.get("viewCount") or 0)
+    # 热度综合:likes + retweets*2 + replies*0.5(转发权重高,回复次之)
+    hotness = likes + retweets * 2 + replies * 0.5
 
-    # 文本截断 + 去换行
     clean_text = text.replace("\n", " ")[:500]
 
     return Item(
@@ -159,7 +167,7 @@ def parse_tweet(raw: dict, favorites_cap: int) -> Item | None:
         id=tweet_id,
         url=url,
         url_hash=url_hash(url),
-        title=clean_text[:120],  # X 没有独立 title,截前 120 字作 title
+        title=clean_text[:120],
         text=clean_text,
         author=f"@{handle}",
         published_at=published,
@@ -168,8 +176,11 @@ def parse_tweet(raw: dict, favorites_cap: int) -> Item | None:
         source_meta={
             "handle": handle,
             "user_name": user.get("name", ""),
-            "favorites": favorites,
+            "likes": likes,
             "retweets": retweets,
+            "replies": replies,
+            "views": views,
+            "is_retweet": bool(raw.get("isRetweet", False)),
         },
     )
 
@@ -189,4 +200,4 @@ if __name__ == "__main__":
     print(f"=== {len(items)} items ===")
     for it in items[:5]:
         print(f"[{it.author:<16}] {it.title[:70]}")
-        print(f"        norm={it.normalized_score:.1f} · favs={it.source_meta['favorites']} rts={it.source_meta['retweets']}")
+        print(f"        norm={it.normalized_score:.1f} · likes={it.source_meta['likes']} rts={it.source_meta['retweets']}")

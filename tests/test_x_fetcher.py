@@ -8,12 +8,15 @@ from src.fetch.x_fetcher import XFetcher, parse_tweet
 
 
 SAMPLE_TWEET = {
-    "id_str": "1800000000000000000",
-    "full_text": "测试推文:Claude Opus 4.6 released with 1M context window",
-    "created_at": "Mon Apr 13 14:30:00 +0000 2026",
-    "user": {"screen_name": "sama", "name": "Sam Altman"},
-    "favorite_count": 2500,
-    "retweet_count": 800,
+    "id": "1800000000000000000",
+    "text": "测试推文:Claude Opus 4.6 released with 1M context window",
+    "createdAt": "Mon Apr 13 14:30:00 +0000 2026",
+    "user": {"screenName": "sama", "name": "Sam Altman"},
+    "likeCount": 2500,
+    "retweetCount": 800,
+    "replyCount": 200,
+    "viewCount": 50000,
+    "isRetweet": False,
 }
 
 
@@ -26,24 +29,40 @@ class TestParseTweet:
         assert it.author == "@sama"
         assert it.url == "https://x.com/sama/status/1800000000000000000"
         assert "Claude Opus" in it.text
-        assert it.source_meta["favorites"] == 2500
+        assert it.source_meta["likes"] == 2500
         assert it.source_meta["retweets"] == 800
-        # hotness = 2500 + 800*2 = 4100, norm = 4100/10000 * 30 = 12.3
-        assert abs(it.normalized_score - 12.3) < 0.1
+        assert it.source_meta["replies"] == 200
+        # hotness = 2500 + 800*2 + 200*0.5 = 4200, norm = 4200/10000 * 30 = 12.6
+        assert abs(it.normalized_score - 12.6) < 0.1
 
     def test_missing_text_returns_none(self):
-        bad = {"id_str": "1", "user": {"screen_name": "x"}}
+        bad = {"id": "1", "user": {"screenName": "x"}}
         assert parse_tweet(bad, 10000) is None
 
     def test_normalized_score_capped_at_30(self):
-        hot = {**SAMPLE_TWEET, "favorite_count": 100000, "retweet_count": 50000}
+        hot = {**SAMPLE_TWEET, "likeCount": 100000, "retweetCount": 50000}
         it = parse_tweet(hot, favorites_cap=10000)
         assert it.normalized_score == 30.0
 
     def test_text_truncation(self):
-        long = {**SAMPLE_TWEET, "full_text": "x" * 1000}
+        long = {**SAMPLE_TWEET, "text": "x" * 1000}
         it = parse_tweet(long, 10000)
         assert len(it.text) == 500
+
+    def test_backward_compat_snake_case(self):
+        """旧格式(v1 API snake_case)也要能解析,以防上游回退"""
+        old = {
+            "id_str": "999",
+            "full_text": "legacy",
+            "created_at": "Mon Apr 13 14:30:00 +0000 2026",
+            "user": {"screen_name": "legacy_user"},
+            "favorite_count": 100,
+            "retweet_count": 50,
+        }
+        it = parse_tweet(old, 10000)
+        assert it is not None
+        assert it.id == "999"
+        assert it.author == "@legacy_user"
 
 
 class TestXFetcher:
