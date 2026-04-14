@@ -19,16 +19,16 @@ x:
   delay_ms: 1500
   lists:
     - name: ai-core
-      id: "TODO_AI_LIST_ID"
+      id: "2043876159944044957"
       tweets_per_run: 50
     - name: crypto-core
-      id: "TODO_CRYPTO_LIST_ID"
+      id: "2043891911434625401"
       tweets_per_run: 50
     - name: tech-core
-      id: "TODO_TECH_LIST_ID"
+      id: "2043892433323471249"
       tweets_per_run: 50
     - name: zh-core
-      id: "TODO_ZH_LIST_ID"
+      id: "2043892830389829698"
       tweets_per_run: 50
   # 刷屏号单独抓,避免挤掉 list 里其他 KOL
   users:
