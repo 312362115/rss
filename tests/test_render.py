@@ -114,16 +114,21 @@ class TestInsertSlotIntoFile:
 
 
 class TestCurrentSlotLabel:
-    def test_aligns_down_to_4h(self):
-        assert current_slot_label(0) == "00:00"
-        assert current_slot_label(3) == "00:00"
-        assert current_slot_label(4) == "04:00"
-        assert current_slot_label(7) == "04:00"
-        assert current_slot_label(8) == "08:00"
-        assert current_slot_label(11) == "08:00"
-        assert current_slot_label(12) == "12:00"
-        assert current_slot_label(15) == "12:00"
-        assert current_slot_label(16) == "16:00"
-        assert current_slot_label(19) == "16:00"
-        assert current_slot_label(20) == "20:00"
-        assert current_slot_label(23) == "20:00"
+    def test_hits_exact_slot_hours(self):
+        assert current_slot_label(10) == "10:00"
+        assert current_slot_label(14) == "14:00"
+        assert current_slot_label(18) == "18:00"
+
+    def test_between_slots_maps_to_last_passed(self):
+        assert current_slot_label(11) == "10:00"
+        assert current_slot_label(13) == "10:00"
+        assert current_slot_label(15) == "14:00"
+        assert current_slot_label(17) == "14:00"
+        assert current_slot_label(19) == "18:00"
+        assert current_slot_label(23) == "18:00"
+
+    def test_before_first_slot_maps_to_last_slot(self):
+        # 凌晨到上午早于 10 点时,归入前一日最后一个 slot(18:00)以便编组
+        assert current_slot_label(0) == "18:00"
+        assert current_slot_label(5) == "18:00"
+        assert current_slot_label(9) == "18:00"

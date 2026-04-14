@@ -704,12 +704,9 @@ def publish(slot_md: str, date: date, slot: str):
   </array>
   <key>StartCalendarInterval</key>
   <array>
-    <dict><key>Hour</key><integer>0</integer></dict>
-    <dict><key>Hour</key><integer>4</integer></dict>
-    <dict><key>Hour</key><integer>8</integer></dict>
-    <dict><key>Hour</key><integer>12</integer></dict>
-    <dict><key>Hour</key><integer>16</integer></dict>
-    <dict><key>Hour</key><integer>20</integer></dict>
+    <dict><key>Hour</key><integer>10</integer></dict>
+    <dict><key>Hour</key><integer>14</integer></dict>
+    <dict><key>Hour</key><integer>18</integer></dict>
   </array>
 
   <key>StandardOutPath</key><string>/tmp/rss-daily.log</string>

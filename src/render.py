@@ -79,13 +79,19 @@ def insert_slot_into_file(existing: str, slot_md: str, slot: str) -> str:
     return existing.replace(marker, f"{marker}\n{slot_md}\n", 1)
 
 
+SLOT_HOURS = [10, 14, 18]
+
+
 def current_slot_label(hour: int) -> str:
     """根据当前小时算对应的 slot 标签。
 
-    launchd 在 00/04/08/12/16/20 触发。其他小时也向下对齐到最近的 slot(便于手动跑测)。
+    launchd 在 10/14/18 触发。其他小时向下对齐到最近已过的 slot(便于手动跑测);
+    凌晨/早上早于第一个 slot 时,归入前一日最后一个 slot 以便编组。
     """
-    slot_hour = (hour // 4) * 4
-    return f"{slot_hour:02d}:00"
+    for h in reversed(SLOT_HOURS):
+        if hour >= h:
+            return f"{h:02d}:00"
+    return f"{SLOT_HOURS[-1]:02d}:00"
 
 
 if __name__ == "__main__":
