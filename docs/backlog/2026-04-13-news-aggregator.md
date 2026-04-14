@@ -1,8 +1,9 @@
 ---
 priority: P1
-status: in-progress
+status: done
 spec: docs/specs/2026-04-13-news-aggregator-design.md
 plan: docs/plans/2026-04-13-news-aggregator-plan.md
+decisions: docs/decisions/2026-04-13-news-aggregator.md
 ---
 
 # 每日新闻聚合器
