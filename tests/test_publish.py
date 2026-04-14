@@ -4,8 +4,6 @@ from __future__ import annotations
 from datetime import date
 from unittest.mock import patch, MagicMock
 
-import pytest
-
 from src.publish import daily_path, publish, write_slot
 
 

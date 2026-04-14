@@ -47,6 +47,6 @@ def load(path: Path | None = None) -> Config:
 if __name__ == "__main__":
     cfg = load()
     print(f"meta.top_n_per_category = {cfg.meta.top_n_per_category}")
-    print(f"x lists = {[l['name'] for l in cfg.x.get('lists', [])]}")
+    print(f"x lists = {[lst['name'] for lst in cfg.x.get('lists', [])]}")
     print(f"rss feeds = {sum(len(v) for v in cfg.rss.values())}")
     print(f"reddit subs = {sum(len(v) for v in cfg.reddit.values())}")
