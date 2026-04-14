@@ -15,7 +15,7 @@ from src.render import (
 )
 
 
-def _mkr(cat, title, importance=30, density=20, source="hn") -> RankedItem:
+def _mkr(cat, title, importance=30, density=20, source="hn", title_cn=None) -> RankedItem:
     url = f"https://example.com/{title[:5]}"
     it = Item(
         source=source,  # type: ignore
@@ -28,7 +28,14 @@ def _mkr(cat, title, importance=30, density=20, source="hn") -> RankedItem:
         published_at=datetime(2026, 4, 13),
         normalized_score=10.0,
     )
-    return RankedItem(item=it, category=cat, importance=importance, density=density, comment_cn="点评")
+    return RankedItem(
+        item=it,
+        category=cat,
+        title_cn=title_cn or title,
+        importance=importance,
+        density=density,
+        comment_cn="点评",
+    )
 
 
 class TestRenderSkeleton:
@@ -63,11 +70,23 @@ class TestRenderSlotSection:
         # 仍然有 AI 条目
         assert "Only AI" in md
 
-    def test_final_score_in_output(self):
+    def test_chinese_title_shown(self):
+        groups = {
+            "ai": [_mkr("ai", "English Title", title_cn="中文标题")],
+            "crypto": [],
+            "tech": [],
+        }
+        md = render_slot_section("08:00", groups)
+        assert "中文标题" in md
+        assert "English Title" not in md  # 只显示中文标题
+
+    def test_no_score_or_author_in_output(self):
         groups = {"ai": [_mkr("ai", "x", importance=35, density=25)], "crypto": [], "tech": []}
         md = render_slot_section("08:00", groups)
-        # final = 35 + 25 + 10 = 70
-        assert "分 70" in md
+        # 极简格式:不应该包含分数、作者、source
+        assert "分 " not in md
+        assert "@sama" not in md
+        assert "HN" not in md
 
 
 class TestInsertSlotIntoFile:

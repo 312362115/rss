@@ -9,11 +9,8 @@
 _本时段无内容_
 {%- else %}
 {% for r in group %}
-{{ loop.index }}. **[{{ r.item.title }}]({{ r.item.url }})**
-   - {{ r.item.author }} · {{ r.item.source | upper }} · 分 {{ "%.0f" | format(r.final_score) }}
-   {%- if r.comment_cn %}
-   - 点评:{{ r.comment_cn }}
-   {%- endif %}
+{{ loop.index }}. [{{ r.title_cn }}]({{ r.item.url }})
+   {{ r.comment_cn }}
 {% endfor %}
 {%- endif %}
 {%- endfor %}

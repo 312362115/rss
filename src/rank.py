@@ -9,6 +9,7 @@ import json
 import logging
 import re
 import subprocess
+import time
 from pathlib import Path
 
 from src.fetch.base import Category, Item, RankedItem
@@ -17,9 +18,11 @@ log = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PROMPT_PATH = REPO_ROOT / "prompts" / "classify.md"
-BATCH_SIZE = 100
+BATCH_SIZE = 50                     # 单批 50 条,避免 Claude CLI 延迟爆炸
+BATCH_INTER_DELAY = 15              # 批之间静默 15s,避开 rate limit
 CLAUDE_BIN = "claude"
-CLAUDE_TIMEOUT = 300  # 5 分钟,Claude CLI 延迟可能较高
+CLAUDE_TIMEOUT = 600                # 10 分钟,给 Claude CLI 更多空间
+CLAUDE_RETRY = 1                    # 失败后重试次数
 
 
 def rank_items(items: list[Item]) -> list[RankedItem]:
@@ -29,12 +32,15 @@ def rank_items(items: list[Item]) -> list[RankedItem]:
 
     ranked: list[RankedItem] = []
     batches = [items[i : i + BATCH_SIZE] for i in range(0, len(items), BATCH_SIZE)]
-    log.info(f"ranking {len(items)} items in {len(batches)} batches")
+    log.info(f"ranking {len(items)} items in {len(batches)} batches (size={BATCH_SIZE})")
 
     for i, batch in enumerate(batches, 1):
         log.info(f"batch {i}/{len(batches)} ({len(batch)} items)")
         batch_ranked = _rank_batch(batch)
         ranked.extend(batch_ranked)
+        # 批间静默,避开 Claude CLI 的 rate limit
+        if i < len(batches):
+            time.sleep(BATCH_INTER_DELAY)
 
     # 过滤 skip
     ranked = [r for r in ranked if r.category != "skip"]
@@ -43,19 +49,31 @@ def rank_items(items: list[Item]) -> list[RankedItem]:
 
 
 def _rank_batch(batch: list[Item]) -> list[RankedItem]:
-    """单批次送 Claude CLI,失败则走 fallback。"""
+    """单批次送 Claude CLI(带 1 次重试),失败则走 fallback。"""
     prompt = _build_prompt(batch)
-    raw = _call_claude(prompt)
-    if raw is None:
-        log.warning("Claude call failed, falling back to heuristic")
-        return _fallback_rank(batch)
 
-    parsed = _parse_json_array(raw)
-    if parsed is None:
-        log.warning("LLM output JSON parse failed, falling back")
-        return _fallback_rank(batch)
+    for attempt in range(CLAUDE_RETRY + 1):
+        raw = _call_claude(prompt)
+        if raw is None:
+            if attempt < CLAUDE_RETRY:
+                log.warning(f"Claude call failed, retry {attempt + 1}/{CLAUDE_RETRY}")
+                time.sleep(20)
+                continue
+            log.warning("Claude call failed after retries, falling back to heuristic")
+            return _fallback_rank(batch)
 
-    return _merge_results(batch, parsed)
+        parsed = _parse_json_array(raw)
+        if parsed is None:
+            if attempt < CLAUDE_RETRY:
+                log.warning(f"JSON parse failed, retry {attempt + 1}/{CLAUDE_RETRY}")
+                time.sleep(20)
+                continue
+            log.warning("LLM output JSON parse failed after retries, falling back")
+            return _fallback_rank(batch)
+
+        return _merge_results(batch, parsed)
+
+    return _fallback_rank(batch)
 
 
 def _build_prompt(batch: list[Item]) -> str:
@@ -139,10 +157,13 @@ def _merge_results(batch: list[Item], parsed: list[dict]) -> list[RankedItem]:
         cat = row.get("category", "skip")
         if cat not in ("ai", "crypto", "tech", "skip"):
             cat = "skip"
+        item = by_id[item_id]
+        title_cn = str(row.get("title_cn", "")).strip() or item.title
         out.append(
             RankedItem(
-                item=by_id[item_id],
+                item=item,
                 category=cat,  # type: ignore[arg-type]
+                title_cn=title_cn,
                 importance=float(row.get("importance", 0)),
                 density=float(row.get("density", 0)),
                 comment_cn=str(row.get("comment_cn", "")),
@@ -177,14 +198,16 @@ def _fallback_rank(batch: list[Item]) -> list[RankedItem]:
             cat = "crypto"
         else:
             cat = "tech"
-        # 默认打分:importance 按 raw_score 估一个,density 给中位
+        # fallback 打分偏低,让有 LLM 评估的条目优先占据 top
+        # title_cn 直接用原 title(英文时不翻译),comment_cn 留空
         out.append(
             RankedItem(
                 item=it,
                 category=cat,
-                importance=20.0,
-                density=15.0,
-                comment_cn="[LLM 降级] " + it.title[:30],
+                title_cn=it.title,
+                importance=10.0,    # 比正常 LLM 评估低,自然排后
+                density=8.0,
+                comment_cn="",       # 空点评,避免"[LLM 降级]"污染
             )
         )
     return out

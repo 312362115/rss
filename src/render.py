@@ -108,7 +108,12 @@ if __name__ == "__main__":
             normalized_score=10.0,
         )
         return RankedItem(
-            item=it, category=cat, importance=score - 40, density=30, comment_cn=comment
+            item=it,
+            category=cat,
+            title_cn=title,
+            importance=score - 40,
+            density=30,
+            comment_cn=comment,
         )
 
     groups = {

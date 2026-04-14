@@ -50,6 +50,7 @@ Category = Literal["ai", "crypto", "tech", "skip"]
 class RankedItem:
     item: Item
     category: Category
+    title_cn: str              # LLM 翻译的中文标题(中文原标题直接透传)
     importance: float          # LLM 给分 0-40
     density: float             # LLM 给分 0-30
     comment_cn: str            # LLM 生成的中文一句话点评
