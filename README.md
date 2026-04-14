@@ -1,6 +1,6 @@
 # rss-daily
 
-每日新闻聚合器:本地每 4 小时自动抓取 AI / 币圈 / 科技圈一手信息(X + HN + Reddit + RSS),LLM 分类打分,生成中文日报 Markdown 到 `daily/` 目录,`git push` 到本仓库。
+每日新闻聚合器:本地每天 10:00 自动抓取 AI / 币圈 / 科技圈一手信息(X + HN + Reddit + RSS),LLM 分类打分,生成中文日报 Markdown 到 `daily/` 目录,`git push` 到本仓库。
 
 打开 GitHub 上 [`daily/`](./daily/) 目录即可浏览最新日报。
 

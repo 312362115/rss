@@ -25,11 +25,10 @@
   </dict>
 
   <key>StartCalendarInterval</key>
-  <array>
-    <dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Hour</key><integer>14</integer><key>Minute</key><integer>0</integer></dict>
-    <dict><key>Hour</key><integer>18</integer><key>Minute</key><integer>0</integer></dict>
-  </array>
+  <dict>
+    <key>Hour</key><integer>10</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
 
   <key>StandardOutPath</key>
   <string>/tmp/rss-daily.log</string>

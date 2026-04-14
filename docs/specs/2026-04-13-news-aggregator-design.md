@@ -135,7 +135,7 @@
 
 #### 方案 A:Anthropic Python SDK + API key
 
-- 成本:$3/1M input,每天 6 次 × ~100 条打分 = 约 $5-10/月
+- 成本:$3/1M input,每天 1 次 × ~500 条打分 ≈ $2-3/月
 - 稳定、可编程
 - 需单独管理 API key
 
@@ -223,7 +223,7 @@
 ```
 ┌─────────────────── 本地 Mac ──────────────────┐
 │                                                │
-│  launchd (每 4h 触发)                          │
+│  launchd (每天 10:00 触发)                     │
 │     │                                          │
 │     ↓                                          │
 │  ~/workspace/rss/src/main.py                   │
@@ -601,9 +601,9 @@ def rank_items(items: list[Item]) -> list[RankedItem]:
 
 #### 5.4.5 `render.py` 输出格式
 
-只有一种运行模式(slot)。每次运行抓新条目 → 写入当天 MD 文件 → 把新时段节**插到所有已有时段的上方**(倒序,新的在顶)。
+只有一种运行模式(slot)。每天 10:00 触发一次,抓新条目 → 写入当天 MD 文件。保留 slot 结构是为了以后如需加频次时无需改 render/publish 逻辑。
 
-每日 MD 文件示例 `daily/2026/04/13.md`(假设一天跑了 3 次 8:00 / 12:00 / 16:00):
+每日 MD 文件示例 `daily/2026/04/15.md`:
 
 ```markdown
 # 2026-04-13
@@ -641,7 +641,7 @@ def rank_items(items: list[Item]) -> list[RankedItem]:
 **写入规则**:
 - 首次创建文件:写 `# 日期` + `<!-- SLOTS_BEGIN -->` + `<!-- SLOTS_END -->`(不加 front-matter,GitHub 原生渲染用不上)
 - 每次 slot 运行:将新时段节**插入到 `<!-- SLOTS_BEGIN -->` 的下一行**(即所有已有时段之上)
-- 幂等性:每次运行前先检查"本日本时段是否已存在",已存在则跳过(防止同一 4h 内重复跑的情况)
+- 幂等性:每次运行前先检查"本日本时段是否已存在",已存在则跳过(防止同一天内手动重跑覆盖)
 - 没有汇总、没有总榜,所有信息都在各自时段内
 
 #### 5.4.6 `publish.py`
@@ -703,11 +703,10 @@ def publish(slot_md: str, date: date, slot: str):
     <string>/Users/renlongyu/workspace/rss/src/main.py</string>
   </array>
   <key>StartCalendarInterval</key>
-  <array>
-    <dict><key>Hour</key><integer>10</integer></dict>
-    <dict><key>Hour</key><integer>14</integer></dict>
-    <dict><key>Hour</key><integer>18</integer></dict>
-  </array>
+  <dict>
+    <key>Hour</key><integer>10</integer>
+    <key>Minute</key><integer>0</integer>
+  </dict>
 
   <key>StandardOutPath</key><string>/tmp/rss-daily.log</string>
   <key>StandardErrorPath</key><string>/tmp/rss-daily.err</string>
