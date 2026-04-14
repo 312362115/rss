@@ -43,6 +43,23 @@ class Item:
         }
 
 
+Category = Literal["ai", "crypto", "tech", "skip"]
+
+
+@dataclass
+class RankedItem:
+    item: Item
+    category: Category
+    importance: float          # LLM 给分 0-40
+    density: float             # LLM 给分 0-30
+    comment_cn: str            # LLM 生成的中文一句话点评
+
+    @property
+    def final_score(self) -> float:
+        """importance + density + item.normalized_score,最高 100"""
+        return self.importance + self.density + self.item.normalized_score
+
+
 class Fetcher(ABC):
     """所有 fetcher 的抽象基类。"""
 
