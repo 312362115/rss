@@ -307,6 +307,84 @@ curl 'https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY' \
 | 公众号订阅/模板消息 | 认证或借平台 | 卡片 | 严格 | ⭐⭐⭐ |
 | 测试号模板消息 | 免费 | 卡片 | 不稳定 | ⭐⭐ |
 
+### 4.5.4 个人玩飞书：1 人企业方案
+
+> 个人场景下，飞书是 2026 年最优解：免费、不封号、5 分钟接入、SDK 完善。
+
+**注册路径**
+
+飞书有两种"个人能用"的形态：
+
+| 形态 | 能创建自建应用 | 推荐 |
+|------|------------|------|
+| 飞书个人版（Lark Personal） | ❌ 受限 | 不推荐 |
+| **飞书企业版（1 人企业）** | ✅ 完整开放 | ⭐ 推荐 |
+
+**关键事实**：注册飞书企业版**不需要营业执照**，手机号 + 邮箱即可创建 1 人企业，自建应用、机器人、开放平台 API 全部能用，和大厂用的没区别。
+
+**5 分钟跑通流程**
+
+```flow
+注册 1 人企业版（手机号）
+↓
+开放平台 → 创建企业自建应用
+↓
+应用能力 → 启用"机器人"
+↓
+权限管理 → 申请 im:message + im:message:send_as_bot
+↓
+事件与回调 → 选"长连接接收事件" → 订阅 im.message.receive_v1
+↓
+版本管理 → 创建并发布版本（自建应用秒过）
+↓
+本地装 SDK 跑示例代码
+```
+
+```terminal
+$ Python 长连接示例
+pip install lark-oapi
+
+# main.py
+import lark_oapi as lark
+from lark_oapi.api.im.v1 import *
+
+def on_message(data: P2ImMessageReceiveV1):
+    msg = data.event.message
+    chat_type = msg.chat_type  # 'p2p' 单聊 / 'group' 群聊
+    text = json.loads(msg.content)['text']
+    print(f"[{chat_type}] {text}")
+
+handler = lark.EventDispatcherHandler.builder("", "") \
+    .register_p2_im_message_receive_v1(on_message).build()
+
+cli = lark.ws.Client("APP_ID", "APP_SECRET", event_handler=handler)
+cli.start()
+```
+
+**个人玩飞书的几种姿势**
+
+| 玩法 | 怎么做 |
+|------|-------|
+| AI 助手 1v1 | 自建应用 + 机器人，私聊触发 |
+| 群里 AI | 拉机器人进自建群，@它触发 |
+| 单向推送通知 | 自定义机器人 webhook（建群 → 加机器人 → 拿 URL） |
+| 跨设备消息中转 | 多个脚本调同一个 webhook，汇总到一个群 |
+| AI 处理后转发 | 长连接收 → LLM 处理 → API 发回 |
+
+**vs 微信生态**
+
+| 维度 | 飞书 1 人企业 | 微信小号 | 企业微信 1 人企业 |
+|------|------------|---------|----------------|
+| 注册门槛 | 手机号 | 手机号 | 手机号 |
+| 合规性 | ✅ 官方 | ❌ 灰色 | ✅ 官方 |
+| 封号风险 | 无 | 高 | 无 |
+| 公网 IP | ❌ 长连接 | — | 回调需 / 智能机器人长连接免 |
+| 消息样式 | 文本/富文本/交互卡片 | 文本/图片基础 | 文本/md/卡片 |
+| 开发体验 | ⭐⭐⭐⭐⭐ | ⭐⭐ 协议黑盒 | ⭐⭐⭐ XML/AES |
+| 触达对象 | 飞书用户 | 微信好友 | 企微/微信用户 |
+
+**唯一的限制**：触达范围局限于飞书生态。适合"自己用、自己推送、自己 AI 助手"场景；想触达不用飞书的普通用户则需另选渠道。
+
 ---
 
 ## 五、横向对比
