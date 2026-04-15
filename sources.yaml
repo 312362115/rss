@@ -10,6 +10,17 @@ meta:
     hn_score: 500
     reddit_upvotes: 5000
     x_favorites: 10000
+    github_star_delta: 500      # GitHub Trending 当日新增 star 封顶
+
+# ------------ 抓取频率分层 ------------
+# hourly: 每次 launchd 触发都跑(只 X)
+# daily : 当天首次 run 时跑,后续 run 跳过(自愈补跑)
+schedules:
+  x: hourly
+  hackernews: daily
+  reddit: daily
+  rss: daily
+  github_trending: daily
 
 # ------------ X (Twitter) ------------
 # list_id 需要在创建 X 小号 + 手动建 list 后填入
@@ -80,3 +91,9 @@ rss:
     - {name: "The Verge",          url: "https://www.theverge.com/rss/index.xml"}
     - {name: "Ars Technica",       url: "https://feeds.arstechnica.com/arstechnica/index"}
     - {name: "HN Front Page",      url: "https://hnrss.org/frontpage"}
+
+# ------------ GitHub Trending ------------
+# 抓 https://github.com/trending?since=daily 的 HTML(无官方 API)
+github_trending:
+  since: daily                  # daily | weekly | monthly
+  top_n: 15                     # 取前 N 个仓库

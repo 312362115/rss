@@ -22,10 +22,12 @@ class Meta:
 @dataclass
 class Config:
     meta: Meta
+    schedules: dict[str, str]   # source name → "hourly" | "daily"
     x: dict[str, Any]
     hackernews: dict[str, Any]
     reddit: dict[str, list[dict[str, Any]]]
     rss: dict[str, list[dict[str, Any]]]
+    github_trending: dict[str, Any]
     raw: dict[str, Any] = field(default_factory=dict)
 
 
@@ -36,10 +38,12 @@ def load(path: Path | None = None) -> Config:
     meta = Meta(**raw["meta"])
     return Config(
         meta=meta,
+        schedules=raw.get("schedules", {}),
         x=raw.get("x", {}),
         hackernews=raw.get("hackernews", {}),
         reddit=raw.get("reddit", {}),
         rss=raw.get("rss", {}),
+        github_trending=raw.get("github_trending", {}),
         raw=raw,
     )
 
@@ -47,6 +51,9 @@ def load(path: Path | None = None) -> Config:
 if __name__ == "__main__":
     cfg = load()
     print(f"meta.top_n_per_category = {cfg.meta.top_n_per_category}")
+    print(f"schedules = {cfg.schedules}")
     print(f"x lists = {[lst['name'] for lst in cfg.x.get('lists', [])]}")
     print(f"rss feeds = {sum(len(v) for v in cfg.rss.values())}")
     print(f"reddit subs = {sum(len(v) for v in cfg.reddit.values())}")
+    print(f"github_trending = {cfg.github_trending}")
+    print(f"hotness_caps.github_star_delta = {cfg.meta.hotness_caps.get('github_star_delta')}")
