@@ -1,0 +1,18 @@
+# {{ date_iso }} {{ slot }} X 时间线
+
+> ← [返回今日精选](../{{ day }}.md)
+
+{%- for cat_label, group in groups %}
+
+## {{ cat_label }}
+
+{%- if not group %}
+
+_本时段无内容_
+{%- else %}
+{% for r in group %}
+{{ loop.index }}. [{{ r.title_cn }}]({{ r.item.url }}) — {{ r.item.author }}
+   {{ r.comment_cn }}
+{% endfor %}
+{%- endif %}
+{%- endfor %}
