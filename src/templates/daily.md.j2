@@ -20,6 +20,6 @@ _本类别无内容_
 ## 今日热门开源项目(GitHub Trending)
 {% for r in gh_items %}
 {{ loop.index }}. [{{ r.item.source_meta.owner }}/{{ r.item.source_meta.repo }}]({{ r.item.url }}) — +{{ r.item.source_meta.stars_today }} ★ today
-   {{ r.comment_cn or r.item.source_meta.description }}
+   {{ r.comment_cn }}
 {% endfor %}
 {%- endif %}

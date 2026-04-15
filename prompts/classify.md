@@ -34,6 +34,12 @@ category 分类:
 
 comment_cn:中文一句话点评(20-40 字),点明"为什么值得看"。skip 分类的 comment_cn 可以为空字符串。
 
+**source=github 特殊处理**(GitHub Trending 仓库):
+- title_cn 直接用原 slug(owner/repo),不要翻译
+- comment_cn 必须输出中文:把 text(英文项目描述)翻译成简洁中文,再补一句"为什么值得看"或亮点。**严禁留空、严禁直接复制英文**。
+- category 一律归 tech(除非明显是 AI/crypto 项目)
+- 例:text="Python tool for converting files and office documents to Markdown" → comment_cn="把各类办公文档一键转 Markdown 的 Python 工具,文档处理流水线常用件"
+
 输出必须是严格的 JSON 数组,每条:
 {"id": "...", "title_cn": "...", "category": "ai|crypto|tech|skip", "importance": 0-40, "density": 0-30, "comment_cn": "..."}
 
