@@ -1,6 +1,6 @@
 ---
 priority: P2
-status: in-progress
+status: done
 spec: docs/specs/2026-04-15-schedule-layering-design.md
 plan: docs/plans/2026-04-15-schedule-layering-plan.md
 ---

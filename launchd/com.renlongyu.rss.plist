@@ -24,11 +24,22 @@
     <string>zh_CN.UTF-8</string>
   </dict>
 
+  <!-- 每天 10/14/18 三次触发 — X hourly 每次跑,daily 源首次 run 自愈补跑 -->
   <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key><integer>10</integer>
-    <key>Minute</key><integer>0</integer>
-  </dict>
+  <array>
+    <dict>
+      <key>Hour</key><integer>10</integer>
+      <key>Minute</key><integer>0</integer>
+    </dict>
+    <dict>
+      <key>Hour</key><integer>14</integer>
+      <key>Minute</key><integer>0</integer>
+    </dict>
+    <dict>
+      <key>Hour</key><integer>18</integer>
+      <key>Minute</key><integer>0</integer>
+    </dict>
+  </array>
 
   <key>StandardOutPath</key>
   <string>/tmp/rss-daily.log</string>
