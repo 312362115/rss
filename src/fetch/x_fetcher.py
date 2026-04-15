@@ -53,24 +53,28 @@ class XFetcher(Fetcher):
         return items
 
     def _fetch_list(self, spec: dict) -> list[Item]:
+        cap = int(spec.get("tweets_per_run", 50))
         args = [
             XREACH_BIN, "list-tweets", spec["id"],
-            "-n", str(spec.get("tweets_per_run", 50)),
+            "-n", str(cap),
             "--max-pages", "1",
             "--format", "jsonl",
             "--delay", str(self.delay_ms),
         ]
-        return self._run(args, list_name=spec["name"])
+        # xreach 实测在 max-pages=1 下也可能返回近 2 倍 cap(分页结果未严格截断),
+        # 此处硬截断,确保产出符合 yaml 配置
+        return self._run(args, list_name=spec["name"])[:cap]
 
     def _fetch_user(self, spec: dict) -> list[Item]:
+        cap = int(spec.get("tweets_per_run", 20))
         args = [
             XREACH_BIN, "tweets", spec["handle"],
-            "-n", str(spec.get("tweets_per_run", 20)),
+            "-n", str(cap),
             "--max-pages", "1",
             "--format", "jsonl",
             "--delay", str(self.delay_ms),
         ]
-        return self._run(args, user_handle=spec["handle"])
+        return self._run(args, user_handle=spec["handle"])[:cap]
 
     def _run(
         self,

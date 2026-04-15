@@ -1,8 +1,8 @@
 ---
 priority: P2
-status: open
-spec:
-plan:
+status: in-progress
+spec: docs/specs/2026-04-15-schedule-layering-design.md
+plan: docs/plans/2026-04-15-schedule-layering-plan.md
 ---
 
 # 抓取频率分层:X 小时更 + 其他日更 + GitHub Trending 接入
