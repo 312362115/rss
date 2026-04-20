@@ -4,6 +4,7 @@
 <!-- 当前无 P0 -->
 
 ## P1 — 重要
+- [ ] [扩展金融一手数据源 + finance-analysis skill 集成](2026-04-20-finance-sources-expansion.md) — 新增 SEC/HKEX/IR/FRED/arXiv 金融源,日报加"金融"区块,对接 .claude 的 finance-analysis skill 做 Alpha 发现
 - [x] [每日新闻聚合器](2026-04-13-news-aggregator.md) — 本地定时抓取 AI/币圈/科技圈新闻,LLM 分类打分,写 daily/ + git push(单 private 仓,无 Pages)
 
 ## P2 — 普通
