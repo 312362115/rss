@@ -27,6 +27,7 @@ from src.fetch.github_fetcher import GitHubTrendingFetcher
 from src.fetch.hn_fetcher import HNFetcher
 from src.fetch.reddit_fetcher import RedditFetcher
 from src.fetch.rss_fetcher import RSSFetcher
+from src.fetch.web_fetcher import WebFetcher
 from src.fetch.x_fetcher import XFetcher
 from src.publish import daily_section_exists, publish_daily, publish_x_slot
 from src.rank import rank_items, top_n_per_category
@@ -80,6 +81,16 @@ def build_daily_fetchers(cfg: Config) -> list[Fetcher]:
                 items_per_feed=cfg.meta.rss_items_per_feed,
             )
         )
+    if cfg.schedules.get("web") == "daily":
+        web_feeds = [f for group in cfg.web.values() for f in group]
+        if web_feeds:
+            fetchers.append(
+                WebFetcher(
+                    feeds=web_feeds,
+                    items_per_feed=cfg.meta.rss_items_per_feed,
+                    user_agent=cfg.meta.user_agent_default,
+                )
+            )
     if cfg.schedules.get("github_trending") == "daily":
         gh_cfg = cfg.github_trending
         fetchers.append(

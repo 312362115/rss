@@ -21,6 +21,7 @@ schedules:
   reddit: daily
   rss: daily
   github_trending: daily
+  web: daily                    # 路径 B:Jina Reader 抓无 RSS 的静态页
 
 # ------------ X (Twitter) ------------
 # list_id 需要在创建 X 小号 + 手动建 list 后填入
@@ -74,10 +75,9 @@ reddit:
 # 特殊 UA 需要时加 ua_override 字段
 rss:
   ai:
-    - {name: "Anthropic",          url: "https://www.anthropic.com/news/rss.xml"}
+    # Anthropic / HF Daily Papers 已无 RSS,迁移到下方 web 段(Jina Reader)
     - {name: "OpenAI Blog",        url: "https://openai.com/blog/rss.xml"}
     - {name: "DeepMind",           url: "https://deepmind.google/blog/rss.xml"}
-    - {name: "HF Daily Papers",    url: "https://huggingface.co/papers/feed/daily"}
     - {name: "MIT Tech Review AI", url: "https://www.technologyreview.com/topic/artificial-intelligence/feed"}
     - {name: "Simon Willison",     url: "https://simonwillison.net/atom/everything/"}
   crypto:
@@ -85,12 +85,25 @@ rss:
     - {name: "The Block",          url: "https://www.theblock.co/rss.xml"}
     - {name: "Decrypt",            url: "https://decrypt.co/feed"}
     - {name: "Cointelegraph",      url: "https://cointelegraph.com/rss"}
-    - {name: "Bankless",           url: "https://newsletter.banklesshq.com/feed"}
+    # Bankless 自建域名证书错配 + Substack 原域名邀请制(400),2026-04-23 移除
   tech:
     - {name: "TechCrunch",         url: "https://techcrunch.com/feed/"}
     - {name: "The Verge",          url: "https://www.theverge.com/rss/index.xml"}
     - {name: "Ars Technica",       url: "https://feeds.arstechnica.com/arstechnica/index"}
     - {name: "HN Front Page",      url: "https://hnrss.org/frontpage"}
+
+# ------------ Web(路径 B:Jina Reader)------------
+# 适用于 SSR 渲染、无 RSS 的静态页面(企业博客、官网新闻、学术页)。
+# 通过 https://r.jina.ai/<url> 拿干净 Markdown,按 parser 注册表规则解析。
+# 决策方法论见 docs/specs/2026-04-23-external-source-routing-design.md
+web:
+  ai:
+    - name:   "Anthropic News"
+      url:    "https://www.anthropic.com/news"
+      parser: anthropic_news
+    - name:   "HF Daily Papers"
+      url:    "https://huggingface.co/papers"
+      parser: hf_papers
 
 # ------------ GitHub Trending ------------
 # 抓 https://github.com/trending?since=daily 的 HTML(无官方 API)

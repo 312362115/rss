@@ -27,6 +27,7 @@ class Config:
     hackernews: dict[str, Any]
     reddit: dict[str, list[dict[str, Any]]]
     rss: dict[str, list[dict[str, Any]]]
+    web: dict[str, list[dict[str, Any]]]
     github_trending: dict[str, Any]
     raw: dict[str, Any] = field(default_factory=dict)
 
@@ -43,6 +44,7 @@ def load(path: Path | None = None) -> Config:
         hackernews=raw.get("hackernews", {}),
         reddit=raw.get("reddit", {}),
         rss=raw.get("rss", {}),
+        web=raw.get("web", {}),
         github_trending=raw.get("github_trending", {}),
         raw=raw,
     )

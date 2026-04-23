@@ -6,11 +6,13 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Literal
 
-Source = Literal["x", "hn", "reddit", "rss", "github"]
+Source = Literal["x", "hn", "reddit", "rss", "github", "web"]
 
-# 单次 slot 内跨源 URL 去重时的优先级:X > HN/GitHub > Reddit > RSS
+# 单次 slot 内跨源 URL 去重时的优先级:X > HN/GitHub > Reddit > RSS/Web
 # 同一规范化 URL 多源命中时,保留优先级最高(数值最小)的那条
-SOURCE_PRIORITY: dict[Source, int] = {"x": 0, "hn": 1, "github": 1, "reddit": 2, "rss": 3}
+SOURCE_PRIORITY: dict[Source, int] = {
+    "x": 0, "hn": 1, "github": 1, "reddit": 2, "rss": 3, "web": 3,
+}
 
 
 @dataclass
