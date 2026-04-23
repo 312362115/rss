@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 from src.config import Config, load
-from src.dedup import dedup_in_slot, filter_x_seen
+from src.dedup import dedup_in_slot, filter_seen
 from src.fetch.base import Fetcher, Item
 from src.fetch.github_fetcher import GitHubTrendingFetcher
 from src.fetch.hn_fetcher import HNFetcher
@@ -134,8 +134,8 @@ def run_hourly(cfg: Config, today, slot: str, *, push: bool, include_x: bool) ->
     if not items:
         return 0
 
-    items = filter_x_seen(items)
     items = dedup_in_slot(items)
+    items = filter_seen(items)
     log.info(f"hourly after dedup: {len(items)} items")
     if not items:
         log.info("no new X items after dedup, skip publish")
@@ -171,7 +171,12 @@ def run_daily(cfg: Config, today, *, push: bool, force: bool = False) -> int:
         return 0
 
     deduped = dedup_in_slot(items)
+    # force 模式下不过滤(但仍记录 url_hash,避免明天常规 run 再次出现)
+    deduped = filter_seen(deduped, filter_out=not force)
     log.info(f"daily after dedup: {len(deduped)} items")
+    if not deduped:
+        log.info("no new items after cross-slot dedup, skip publish")
+        return 0
 
     ranked = rank_items(deduped)
     if not ranked:

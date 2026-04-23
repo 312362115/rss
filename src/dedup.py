@@ -1,6 +1,9 @@
-"""URL 规范化与单次 slot 内跨源去重。
+"""URL 规范化 + 单次 slot 内跨源去重 + 跨 slot/跨日持久去重。
 
-X 跨 slot 去重通过 .cache/x_seen.json 持久化(48h TTL),其他源无持久化。
+跨 slot/跨日去重通过 .cache/seen.json 持久化 url_hash,14 天 TTL。
+所有源统一走此机制(X 48h 专用缓存于 2026-04-23 合并)。
+
+决策背景见 docs/decisions/2026-04-23-cross-day-dedup.md
 """
 from __future__ import annotations
 
@@ -16,8 +19,8 @@ from src.fetch.base import SOURCE_PRIORITY, Item
 log = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-X_SEEN_PATH = REPO_ROOT / ".cache" / "x_seen.json"
-X_SEEN_TTL_SECONDS = 48 * 3600  # 48h,覆盖跨自然日
+SEEN_PATH = REPO_ROOT / ".cache" / "seen.json"
+SEEN_TTL_SECONDS = 14 * 24 * 3600  # 14 天,覆盖缓更源的重复刷屏
 
 # 追踪参数白名单,去重时忽略
 TRACK_PARAMS = {
@@ -61,56 +64,55 @@ def dedup_in_slot(items: list[Item]) -> list[Item]:
     return list(by_hash.values())
 
 
-def _load_x_seen() -> dict[str, float]:
-    if not X_SEEN_PATH.exists():
+def _load_seen() -> dict[str, float]:
+    if not SEEN_PATH.exists():
         return {}
     try:
-        return json.loads(X_SEEN_PATH.read_text(encoding="utf-8"))
+        return json.loads(SEEN_PATH.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as e:
-        log.warning(f"x_seen cache corrupt, resetting: {e}")
+        log.warning(f"seen cache corrupt, resetting: {e}")
         return {}
 
 
-def _save_x_seen(seen: dict[str, float]) -> None:
-    X_SEEN_PATH.parent.mkdir(parents=True, exist_ok=True)
-    X_SEEN_PATH.write_text(json.dumps(seen, separators=(",", ":")), encoding="utf-8")
+def _save_seen(seen: dict[str, float]) -> None:
+    SEEN_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SEEN_PATH.write_text(json.dumps(seen, separators=(",", ":")), encoding="utf-8")
 
 
-def filter_x_seen(items: list[Item]) -> list[Item]:
-    """X 跨 slot 去重:过滤掉 48h 内已见过的 tweet id。
+def filter_seen(items: list[Item], *, filter_out: bool = True) -> list[Item]:
+    """跨 slot / 跨日持久去重(按 url_hash,14 天 TTL)。
 
     工作流:
-    1. 加载 .cache/x_seen.json
-    2. 清掉 TTL 过期的条目
-    3. 过滤 items 中已存在的 X tweet id
-    4. 把通过过滤的 X items 加入 seen 并写回
+    1. 加载 .cache/seen.json,清理 TTL 过期条目
+    2. 对每个 item:
+       - filter_out=True 且 url_hash 已见过 → skip
+       - 否则 → 保留,并把 url_hash 记入缓存(now 时间戳)
+    3. 回写缓存
 
-    非 X 源的 items 直接透传不动。
+    调用点必须放在 dedup_in_slot 之后,确保同 url 多源时记录的是优先级最高的那条。
+    filter_out=False 用于 --force-daily 场景:不过滤但仍记录,避免今日强制重写的
+    条目明天再次出现。
     """
     now = time.time()
-    seen = _load_x_seen()
+    seen = _load_seen()
 
-    # 清理过期
-    expired_cutoff = now - X_SEEN_TTL_SECONDS
-    pruned = {tid: ts for tid, ts in seen.items() if ts >= expired_cutoff}
-    pruned_count = len(seen) - len(pruned)
-    seen = pruned
+    cutoff = now - SEEN_TTL_SECONDS
+    pruned_before = len(seen)
+    seen = {h: ts for h, ts in seen.items() if ts >= cutoff}
+    pruned = pruned_before - len(seen)
 
     kept: list[Item] = []
     skipped = 0
     for it in items:
-        if it.source != "x":
-            kept.append(it)
-            continue
-        if it.id in seen:
+        if filter_out and it.url_hash in seen:
             skipped += 1
             continue
         kept.append(it)
-        seen[it.id] = now
+        seen[it.url_hash] = now
 
-    _save_x_seen(seen)
+    _save_seen(seen)
     log.info(
-        f"x_seen filter: skipped {skipped} dup tweets, "
-        f"pruned {pruned_count} expired, cache size {len(seen)}"
+        f"seen filter (filter_out={filter_out}): kept {len(kept)}, "
+        f"skipped {skipped}, pruned {pruned} expired, cache size {len(seen)}"
     )
     return kept

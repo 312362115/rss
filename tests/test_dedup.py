@@ -1,9 +1,13 @@
 """dedup 模块单元测试。"""
 from __future__ import annotations
 
+import time
 from datetime import datetime
 
-from src.dedup import dedup_in_slot, normalize_url, url_hash
+import pytest
+
+from src import dedup
+from src.dedup import dedup_in_slot, filter_seen, normalize_url, url_hash
 from src.fetch.base import Item
 
 
@@ -89,3 +93,72 @@ class TestDedupInSlot:
 
     def test_empty_input(self):
         assert dedup_in_slot([]) == []
+
+
+@pytest.fixture
+def isolated_seen_cache(tmp_path, monkeypatch):
+    """把 SEEN_PATH 指到临时目录,避免污染真实 .cache/seen.json"""
+    fake_path = tmp_path / "seen.json"
+    monkeypatch.setattr(dedup, "SEEN_PATH", fake_path)
+    return fake_path
+
+
+class TestFilterSeen:
+    def test_first_run_keeps_all_and_records(self, isolated_seen_cache):
+        items = [
+            _make_item("rss", "https://example.com/a"),
+            _make_item("rss", "https://example.com/b"),
+        ]
+        kept = filter_seen(items)
+        assert len(kept) == 2
+        assert isolated_seen_cache.exists()
+
+    def test_second_run_skips_duplicates(self, isolated_seen_cache):
+        items = [_make_item("rss", "https://example.com/a")]
+        # 第一次
+        assert len(filter_seen(items)) == 1
+        # 第二次(模拟跨日)—— 同 URL 被过滤
+        assert len(filter_seen(items)) == 0
+
+    def test_ttl_expired_items_reappear(self, isolated_seen_cache, monkeypatch):
+        """TTL 过期后同一 URL 可以再次通过"""
+        items = [_make_item("rss", "https://example.com/a")]
+        # 冻结在远古时间写入
+        monkeypatch.setattr(time, "time", lambda: 1000.0)
+        filter_seen(items)
+        # 推进到 15 天后(超过 14 天 TTL)
+        monkeypatch.setattr(time, "time", lambda: 1000.0 + 15 * 86400)
+        kept = filter_seen(items)
+        assert len(kept) == 1
+
+    def test_force_mode_passes_but_records(self, isolated_seen_cache):
+        """filter_out=False 时不过滤,但仍写入缓存"""
+        items = [_make_item("rss", "https://example.com/a")]
+        filter_seen(items)  # 先污染一次
+        # force 模式:虽然 seen 已有,但仍通过
+        kept = filter_seen(items, filter_out=False)
+        assert len(kept) == 1
+        # 下一次常规 run 仍会被过滤(force 模式刷新了 ts)
+        assert len(filter_seen(items)) == 0
+
+    def test_utm_variants_share_seen_entry(self, isolated_seen_cache):
+        """带/不带 utm 的同一 URL 共享一条 seen 记录"""
+        a = _make_item("rss", "https://example.com/a?utm_source=x")
+        b = _make_item("rss", "https://example.com/a")
+        assert len(filter_seen([a])) == 1
+        assert len(filter_seen([b])) == 0
+
+    def test_cross_source_same_url_blocked_after_first(self, isolated_seen_cache):
+        """X 抓到的 URL,次日 RSS 抓到同 URL 应被过滤"""
+        x_item = _make_item("x", "https://example.com/a")
+        rss_item = _make_item("rss", "https://example.com/a")
+        filter_seen([x_item])
+        assert len(filter_seen([rss_item])) == 0
+
+    def test_corrupt_cache_recovers(self, isolated_seen_cache):
+        """缓存文件损坏时重置,不抛异常"""
+        isolated_seen_cache.parent.mkdir(parents=True, exist_ok=True)
+        isolated_seen_cache.write_text("not json{{", encoding="utf-8")
+        items = [_make_item("rss", "https://example.com/a")]
+        kept = filter_seen(items)
+        assert len(kept) == 1
